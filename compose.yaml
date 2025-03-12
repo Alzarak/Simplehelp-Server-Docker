@@ -1,0 +1,11 @@
+services:
+  simplehelp:
+    image: alzahar/simplehelpserver:latest
+    container_name: simplehelpServer
+    network_mode: bridge
+    volumes:
+      - ./opt/SimpleHelp/configuration:/opt/SimpleHelp/configuration
+    ports:
+      - "80:80"
+      - "443:443"
+    restart: unless-stopped
