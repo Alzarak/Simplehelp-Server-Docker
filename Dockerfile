@@ -12,9 +12,12 @@ RUN wget https://simple-help.com/releases/SimpleHelp-linux-amd64.tar.gz && \
     rm SimpleHelp-linux-amd64.tar.gz
 
 # Stage 2: Final image (OpenJDK JRE)
-FROM openjdk:17-jdk-slim
+FROM eclipse-temurin:17-jre
 
 WORKDIR /opt
+
+# Install gosu for dropping privileges
+RUN apt-get update && apt-get install -y --no-install-recommends gosu && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user
 RUN useradd -ms /bin/bash simplehelpuser
@@ -22,13 +25,13 @@ RUN useradd -ms /bin/bash simplehelpuser
 # Copy SimpleHelp from build stage
 COPY --from=builder /tmp/SimpleHelp /opt/SimpleHelp
 
+# Copy entrypoint script
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh /opt/SimpleHelp/serverstart.sh
+
 # Change ownership
 RUN chown -R simplehelpuser:simplehelpuser /opt
 
-USER simplehelpuser
-
-RUN chmod +x /opt/SimpleHelp/serverstart.sh
-
 EXPOSE 8008
 
-ENTRYPOINT ["/bin/sh", "-c", "/opt/SimpleHelp/serverstart.sh && tail -f /dev/null"]
+ENTRYPOINT ["/entrypoint.sh"]

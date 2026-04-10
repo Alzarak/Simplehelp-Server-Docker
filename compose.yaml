@@ -1,5 +1,6 @@
 services:
   simplehelp:
+    build: .
     image: alzahar/simplehelpserver:latest
     container_name: simplehelpServer
     network_mode: bridge

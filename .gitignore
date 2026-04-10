@@ -3,3 +3,5 @@
 # Allow Dockerfile and compose.yaml
 !Dockerfile
 !compose.yaml
+!entrypoint.sh
+!README.md
