@@ -19,8 +19,11 @@ WORKDIR /opt
 # Install gosu for dropping privileges
 RUN apt-get update && apt-get install -y --no-install-recommends gosu && rm -rf /var/lib/apt/lists/*
 
-# Create non-root user
-RUN useradd -ms /bin/bash simplehelpuser
+# Create non-root user. UID/GID pinned to 1001 — the value eclipse-temurin:17-jre
+# leaves free, and the value the live prod config is owned by. Unpinned, a base
+# image update could silently shift it and break every bind mount.
+RUN groupadd -g 1001 simplehelpuser && \
+    useradd -u 1001 -g 1001 -m -s /bin/bash simplehelpuser
 
 # Copy SimpleHelp from build stage
 COPY --from=builder /tmp/SimpleHelp /opt/SimpleHelp

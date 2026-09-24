@@ -1,0 +1,52 @@
+# SimpleHelp + Twingate connector — dedicated Azure VM
+#
+# Deployed to /opt/simplehelp/compose.yaml on the new VM. Differs from the
+# retired prod file (/container/docker/simplehelpserver/compose.yaml) in three
+# ways: the image is pinned by digest, the eth1-bridge external network is gone
+# (single NIC now, so ports bind plainly), and the Twingate connector rides along.
+#
+# There is deliberately NO `build:` key. The Dockerfile pulls SimpleHelp from
+# simple-help.com unpinned at build time, so a rebuild would install whatever
+# version is current — which may not match the configuration folder being
+# restored. Migration moves the exact running image by digest instead.
+#
+#   docker save alzahar/simplehelpserver@sha256:dca59ec5... | gzip \
+#     | ssh newvm 'gunzip | docker load'
+#
+# Config is restored from a SimpleHelp UI backup (a zip of the configuration
+# folder). It omits toolbox-resources — rsync that separately. Afterwards:
+#
+#   chown -R 1001:1001 /opt/simplehelp/configuration
+#
+# 1001, not 1000: eclipse-temurin:17-jre already occupies UID 1000, so the
+# Dockerfile's useradd landed on 1001. Getting this wrong leaves SimpleHelp
+# unable to read its own config.
+
+services:
+  simplehelp:
+    # SimpleHelp 6.3.0, build SSuite-6-3-20260814-000610
+    image: alzahar/simplehelpserver@sha256:dca59ec5e7941a38e1100580087297814a4f3cfd3d51c1f019e3511af1fec5aa
+    container_name: simplehelpServer
+    volumes:
+      - /opt/simplehelp/configuration:/opt/SimpleHelp/configuration
+      - /opt/simplehelp/logs:/opt/SimpleHelp/logs
+    ports:
+      # 443 serves clients and technicians; 80 must stay open for SimpleHelp's
+      # built-in Let's Encrypt HTTP-01 renewal.
+      - "80:80"
+      - "443:443"
+    restart: unless-stopped
+
+  twingate-connector:
+    image: twingate/connector:1
+    container_name: twingate-simplehelp-connector
+    # host networking is required by the connector
+    network_mode: host
+    sysctls:
+      net.ipv4.ping_group_range: "0 2147483647"
+    env_file:
+      - .env
+    environment:
+      TWINGATE_LABEL_HOSTNAME: simplehelp-vm
+      TWINGATE_LABEL_DEPLOYED_BY: docker
+    restart: unless-stopped
