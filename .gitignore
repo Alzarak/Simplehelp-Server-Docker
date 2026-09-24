@@ -3,7 +3,9 @@
 # Allow Dockerfile and compose.yaml
 !Dockerfile
 !compose.yaml
+!compose.newvm.yaml
 !entrypoint.sh
 !README.md
 !.gitignore
 !.gitattributes
+!.env.example
